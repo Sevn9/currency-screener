@@ -1,0 +1,20 @@
+service_config:
+  host: localhost
+  port: "8080"
+  timeout: 30
+
+
+currency_api_config:
+  api_url: "https://latest.currency-api.pages.dev/v1/currencies/"
+
+
+# database:
+#   host: localhost
+#   port: 5432
+#   username: admin
+#   password: secret123
+#   dbname: myapp
+
+# logging:
+#   level: info
+#   format: json
