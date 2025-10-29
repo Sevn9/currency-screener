@@ -5,7 +5,7 @@ service_config:
 
 
 currency_api_config:
-  api_url: "https://latest.currency-api.pages.dev/v1/currencies/"
+  api_url: "https://latest.currency-api.pages.dev"
 
 
 # database:

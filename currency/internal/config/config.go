@@ -8,13 +8,14 @@ import (
 )
 
 type ServiceConfig struct {
-	Host    string `mapstructure:"host"`
-	Port    string `mapstructure:"port"`
-	Timeout int    `mapstructure:"timeout"`
+	Host           string `mapstructure:"host"`
+	Port           string `mapstructure:"port"`
+	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
-type PublicCurrencyAPI struct {
-	ApiUrl string `mapstructure:"api_url"`
+type PublicCurrencyAPIConfig struct {
+	ApiUrl         string `mapstructure:"api_url"`
+	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
 // type DatabaseConfig struct {
@@ -31,8 +32,8 @@ type PublicCurrencyAPI struct {
 // }
 
 type AppConfig struct {
-	Service           ServiceConfig     `mapstructure:"service_config"`
-	PublicCurrencyApi PublicCurrencyAPI `mapstructure:"currency_api_config"`
+	Service           ServiceConfig           `mapstructure:"service_config"`
+	PublicCurrencyApi PublicCurrencyAPIConfig `mapstructure:"currency_api_config"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

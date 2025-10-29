@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/config"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
 	"google.golang.org/grpc"
@@ -25,6 +26,8 @@ func main() {
 }
 
 func run() error {
+	ctx, close := context.WithTimeout(context.Background(), 10*time.Second)
+	defer close()
 	//загрузка конфигов
 	//example: go run main.go -config=.../currency-screener/currency/internal/config/config.yaml
 	configPath := flag.String("config", "../../internal/config/config.yaml", "path to the config file")
@@ -35,6 +38,15 @@ func run() error {
 	if err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
+
+	//temp: запрос текущего курса
+	currClient, err := currency.NewCurrencyClient(cfg.PublicCurrencyApi)
+
+	if err != nil {
+		log.Fatalf("Error NewCurrencyClient create: %s", err)
+	}
+
+	currClient.GetCurrentRate(ctx)
 
 	//конфигурируем gRPC сервер
 	currencyServer := handler.NewCurrencyServer()
@@ -64,7 +76,7 @@ func run() error {
 	return err
 }
 
-func startGRPCServer(cfg *config.AppConfig, currencyServer handler.CurrencyServer) (func(timeout time.Duration) error, <-chan error, error) {
+func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServer) (func(timeout time.Duration) error, <-chan error, error) {
 	lis, err := net.Listen("tcp", ":"+cfg.Service.Port)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to listen: %w", err)

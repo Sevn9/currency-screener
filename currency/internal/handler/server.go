@@ -3,6 +3,6 @@ package handler
 type CurrencyServer struct {
 }
 
-func NewCurrencyServer() CurrencyServer {
-	return CurrencyServer{}
+func NewCurrencyServer() *CurrencyServer {
+	return &CurrencyServer{}
 }
