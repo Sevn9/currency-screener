@@ -14,20 +14,31 @@ import (
 	"github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/config"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	fmt.Println("currency microservice start")
+	fmt.Println("main: currency microservice start")
 	if err := run(); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("main: " + err.Error())
 	}
-	fmt.Println("currency microservice end")
+	fmt.Println("main: currency microservice end")
 }
 
 func run() error {
-	ctx, close := context.WithTimeout(context.Background(), 10*time.Second)
-	defer close()
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("main: Recovery:", r)
+		}
+	}()
+
+	ctx := context.Background()
+
+	logger, _ := zap.NewProduction()
+	//cброс (flush) всех буферизованных записей логов во внешнее хранилище
+	defer logger.Sync()
+
 	//загрузка конфигов
 	//example: go run main.go -config=.../currency-screener/currency/internal/config/config.yaml
 	configPath := flag.String("config", "../../internal/config/config.yaml", "path to the config file")
@@ -36,25 +47,36 @@ func run() error {
 	cfg, err := config.LoadConfig(*configPath)
 
 	if err != nil {
-		log.Fatalf("error loading config: %v", err)
+		logger.Fatal("main: error loading config",
+			zap.Error(err))
+		return err
 	}
 
 	//temp: запрос текущего курса
-	currClient, err := currency.NewCurrencyClient(cfg.PublicCurrencyApi)
+	currClient, err := currency.NewCurrencyClient(cfg.PublicCurrencyApi, logger)
 
 	if err != nil {
-		log.Fatalf("Error NewCurrencyClient create: %s", err)
+		logger.Fatal("main: error NewCurrencyClient create",
+			zap.Error(err))
+		return err
 	}
 
-	currClient.GetCurrentRate(ctx)
+	currClientTemp, er := currClient.GetCurrentRate(ctx)
+	if er != nil {
+		logger.Fatal("main: error GetCurrentRate create:",
+			zap.Error(err))
+		return err
+	}
+	_ = currClientTemp
 
 	//конфигурируем gRPC сервер
 	currencyServer := handler.NewCurrencyServer()
 
 	// запускаем gRPC сервер
-	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer)
+	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer, logger)
 	if err != nil {
-		log.Fatalf("Error starting GRPC server: %s", err)
+		logger.Fatal("main: error starting GRPC server:",
+			zap.Error(err))
 		return err
 	}
 
@@ -64,7 +86,7 @@ func run() error {
 
 	select {
 	case <-stop: // пришёл сигнал на выключение
-		log.Println("Shutting down gRPC server...")
+		logger.Info("main: Shutting down gRPC server...")
 		return stopGRPC(5 * time.Second)
 
 	case serveErr := <-errCh: // сервер упал сам
@@ -76,10 +98,11 @@ func run() error {
 	return err
 }
 
-func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServer) (func(timeout time.Duration) error, <-chan error, error) {
+func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServer, logger *zap.Logger) (
+	func(timeout time.Duration) error, <-chan error, error) {
 	lis, err := net.Listen("tcp", ":"+cfg.Service.Port)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to listen: %w", err)
+		return nil, nil, fmt.Errorf("main: failed to listen: %w", err)
 	}
 
 	grpcServer := grpc.NewServer()
@@ -89,10 +112,22 @@ func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServ
 	errCh := make(chan error, 1)
 
 	go func() {
-		log.Printf("gRPC server is listening on :%s", cfg.Service.Port)
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("main: Recovery:", r)
+			}
+		}()
+
+		logger.Info(
+			// Статическое сообщение (message)
+			"main: gRPC server is listening",
+			// Структурированное поле (Field) для порта
+			zap.String("port", cfg.Service.Port),
+			zap.String("protocol", "grpc"),
+		)
 
 		if err := grpcServer.Serve(lis); err != nil {
-			errCh <- fmt.Errorf("filed to serve: %w", err)
+			errCh <- fmt.Errorf("main: filed to serve: %w", err)
 		}
 		close(errCh)
 	}()
@@ -109,9 +144,9 @@ func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServ
 
 		select {
 		case <-doneCh:
-			log.Println("gRPC server stopped gracefully")
+			logger.Info("main: gRPC server stopped gracefully")
 		case <-ctx.Done():
-			log.Println("Graceful stop timed out, forcing stop")
+			logger.Info("main: Graceful stop timed out, forcing stop")
 			grpcServer.Stop()
 		}
 
