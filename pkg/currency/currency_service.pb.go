@@ -118,8 +118,8 @@ const file_proto_currency_currency_service_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"&\n" +
 	"\n" +
 	"HelloReply\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2C\n" +
-	"\aGreeter\x128\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2K\n" +
+	"\x0fCurrencyService\x128\n" +
 	"\bSayHello\x12\x16.currency.HelloRequest\x1a\x14.currency.HelloReplyB\x0eZ\fpkg/currencyb\x06proto3"
 
 var (
@@ -140,8 +140,8 @@ var file_proto_currency_currency_service_proto_goTypes = []any{
 	(*HelloReply)(nil),   // 1: currency.HelloReply
 }
 var file_proto_currency_currency_service_proto_depIdxs = []int32{
-	0, // 0: currency.Greeter.SayHello:input_type -> currency.HelloRequest
-	1, // 1: currency.Greeter.SayHello:output_type -> currency.HelloReply
+	0, // 0: currency.CurrencyService.SayHello:input_type -> currency.HelloRequest
+	1, // 1: currency.CurrencyService.SayHello:output_type -> currency.HelloReply
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

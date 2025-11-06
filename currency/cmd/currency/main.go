@@ -11,9 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sevn9/currency-screener/currency/internal/clients/currency"
+	currencyClient "github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/config"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
+	"github.com/Sevn9/currency-screener/currency/internal/services"
+	"github.com/Sevn9/currency-screener/pkg/currency"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -53,7 +55,7 @@ func run() error {
 	}
 
 	//temp: запрос текущего курса
-	currClient, err := currency.NewCurrencyClient(cfg.PublicCurrencyApi, logger)
+	currClient, err := currencyClient.NewCurrencyClient(cfg.PublicCurrencyApi, logger)
 
 	if err != nil {
 		logger.Fatal("main: error NewCurrencyClient create",
@@ -69,8 +71,11 @@ func run() error {
 	}
 	_ = currClientTemp
 
+	//added services
+	svc := services.NewCurrencyService(currClient, logger)
+
 	//конфигурируем gRPC сервер
-	currencyServer := handler.NewCurrencyServer()
+	currencyServer := handler.NewCurrencyServer(svc, logger)
 
 	// запускаем gRPC сервер
 	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer, logger)
@@ -108,6 +113,7 @@ func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServ
 	grpcServer := grpc.NewServer()
 
 	//todo: регистрация сервисов
+	currency.RegisterCurrencyServiceServer(grpcServer, currencyServer)
 
 	errCh := make(chan error, 1)
 
