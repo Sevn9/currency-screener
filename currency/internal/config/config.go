@@ -13,6 +13,12 @@ type ServiceConfig struct {
 	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
+type ManagementConfig struct {
+	Host           string `mapstructure:"host"`
+	Port           string `mapstructure:"port"`
+	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
+}
+
 type PublicCurrencyAPIConfig struct {
 	ApiUrl         string `mapstructure:"api_url"`
 	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
@@ -32,8 +38,9 @@ type PublicCurrencyAPIConfig struct {
 // }
 
 type AppConfig struct {
-	Service           ServiceConfig           `mapstructure:"service_config"`
+	Service           ServiceConfig           `mapstructure:"grpc_service_config"`
 	PublicCurrencyApi PublicCurrencyAPIConfig `mapstructure:"currency_api_config"`
+	ManagementService ManagementConfig        `mapstructure:"management_service_config"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

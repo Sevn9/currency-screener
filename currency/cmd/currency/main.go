@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,6 +15,7 @@ import (
 	currencyClient "github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/config"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
+	"github.com/Sevn9/currency-screener/currency/internal/handler/rest/healthz"
 	"github.com/Sevn9/currency-screener/currency/internal/services"
 	"github.com/Sevn9/currency-screener/pkg/currency"
 	"go.uber.org/zap"
@@ -49,7 +51,7 @@ func run() error {
 	cfg, err := config.LoadConfig(*configPath)
 
 	if err != nil {
-		logger.Fatal("main: error loading config",
+		logger.Error("main: error loading config",
 			zap.Error(err))
 		return err
 	}
@@ -58,14 +60,14 @@ func run() error {
 	currClient, err := currencyClient.NewCurrencyClient(cfg.PublicCurrencyApi, logger)
 
 	if err != nil {
-		logger.Fatal("main: error NewCurrencyClient create",
+		logger.Error("main: error NewCurrencyClient create",
 			zap.Error(err))
 		return err
 	}
 
 	currClientTemp, er := currClient.GetCurrentRate(ctx)
 	if er != nil {
-		logger.Fatal("main: error GetCurrentRate create:",
+		logger.Error("main: error GetCurrentRate create:",
 			zap.Error(err))
 		return err
 	}
@@ -80,10 +82,32 @@ func run() error {
 	// запускаем gRPC сервер
 	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer, logger)
 	if err != nil {
-		logger.Fatal("main: error starting GRPC server:",
+		logger.Error("main: error starting GRPC server:",
 			zap.Error(err))
 		return err
 	}
+
+	//health checker
+	mux := http.NewServeMux()
+
+	healthController := healthz.NewHealthController(logger)
+
+	mux.HandleFunc("/healthz", healthController.Healthz)
+	mux.HandleFunc("/", healthController.Index)
+
+	srv := &http.Server{
+		Addr:    ":" + cfg.ManagementService.Port,
+		Handler: mux,
+	}
+
+	go func() {
+		logger.Info("HTTP management service listening",
+			zap.String("port", cfg.ManagementService.Port))
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server failed", zap.Error(err))
+		}
+	}()
 
 	//корректное завершение
 	stop := make(chan os.Signal, 1)
@@ -91,11 +115,28 @@ func run() error {
 
 	select {
 	case <-stop: // пришёл сигнал на выключение
+
+		//shutdown http server
+		logger.Info("main: shutting down HTTP management server...")
+		httpCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(httpCtx); err != nil {
+			logger.Error("main: HTTP server forced to shutdown", zap.Error(err))
+		} else {
+			logger.Info("main: HTTP server stopped gracefully")
+		}
+
+		//shutdown grpc server
 		logger.Info("main: Shutting down gRPC server...")
 		return stopGRPC(5 * time.Second)
 
 	case serveErr := <-errCh: // сервер упал сам
 		if serveErr != nil {
+
+			logger.Error("main: gRPC server error", zap.Error(serveErr))
+			//shutdown http server
+			_ = srv.Close()
 			return serveErr
 		}
 	}
