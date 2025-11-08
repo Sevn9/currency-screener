@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Sevn9/currency-screener/currency/internal/cache_repository"
 	currencyClient "github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/config"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
@@ -73,8 +74,10 @@ func run() error {
 	}
 	_ = currClientTemp
 
+	cacheRepo := cache_repository.NewMemoryRateStorage()
+
 	//added services
-	svc := services.NewCurrencyService(currClient, logger)
+	svc := services.NewCurrencyService(cacheRepo, currClient, logger)
 
 	//конфигурируем gRPC сервер
 	currencyServer := handler.NewCurrencyServer(svc, logger)
