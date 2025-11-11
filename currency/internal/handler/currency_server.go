@@ -1,12 +1,17 @@
 package handler
 
 import (
+	"context"
+
+	"github.com/Sevn9/currency-screener/currency/internal/dto"
 	"github.com/Sevn9/currency-screener/pkg/currency"
 	"go.uber.org/zap"
 )
 
-// setup Services for CurrencyServer
+// setup Services methods for CurrencyServer
 type CurrencyService interface {
+	GetCurrencyRateFromInterval(ctx context.Context, reqDto *dto.CurrencyRateRequestDTO) ([]dto.CurrencyRateResponseDTO, error)
+	FetchAndSaveCurrencyRate(ctx context.Context, baseCurrency string) error
 }
 
 // setup CurrencyServer

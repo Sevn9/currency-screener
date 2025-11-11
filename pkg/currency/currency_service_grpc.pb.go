@@ -19,14 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CurrencyService_SayHello_FullMethodName = "/currency.CurrencyService/SayHello"
+	CurrencyService_GetRates_FullMethodName = "/currency.CurrencyService/GetRates"
 )
 
 // CurrencyServiceClient is the client API for CurrencyService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CurrencyServiceClient interface {
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+	GetRates(ctx context.Context, in *GetRateRequest, opts ...grpc.CallOption) (*GetRateResponse, error)
 }
 
 type currencyServiceClient struct {
@@ -37,10 +37,10 @@ func NewCurrencyServiceClient(cc grpc.ClientConnInterface) CurrencyServiceClient
 	return &currencyServiceClient{cc}
 }
 
-func (c *currencyServiceClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
+func (c *currencyServiceClient) GetRates(ctx context.Context, in *GetRateRequest, opts ...grpc.CallOption) (*GetRateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HelloReply)
-	err := c.cc.Invoke(ctx, CurrencyService_SayHello_FullMethodName, in, out, cOpts...)
+	out := new(GetRateResponse)
+	err := c.cc.Invoke(ctx, CurrencyService_GetRates_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *currencyServiceClient) SayHello(ctx context.Context, in *HelloRequest, 
 // All implementations must embed UnimplementedCurrencyServiceServer
 // for forward compatibility.
 type CurrencyServiceServer interface {
-	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+	GetRates(context.Context, *GetRateRequest) (*GetRateResponse, error)
 	mustEmbedUnimplementedCurrencyServiceServer()
 }
 
@@ -62,8 +62,8 @@ type CurrencyServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCurrencyServiceServer struct{}
 
-func (UnimplementedCurrencyServiceServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+func (UnimplementedCurrencyServiceServer) GetRates(context.Context, *GetRateRequest) (*GetRateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRates not implemented")
 }
 func (UnimplementedCurrencyServiceServer) mustEmbedUnimplementedCurrencyServiceServer() {}
 func (UnimplementedCurrencyServiceServer) testEmbeddedByValue()                         {}
@@ -86,20 +86,20 @@ func RegisterCurrencyServiceServer(s grpc.ServiceRegistrar, srv CurrencyServiceS
 	s.RegisterService(&CurrencyService_ServiceDesc, srv)
 }
 
-func _CurrencyService_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
+func _CurrencyService_GetRates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CurrencyServiceServer).SayHello(ctx, in)
+		return srv.(CurrencyServiceServer).GetRates(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CurrencyService_SayHello_FullMethodName,
+		FullMethod: CurrencyService_GetRates_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CurrencyServiceServer).SayHello(ctx, req.(*HelloRequest))
+		return srv.(CurrencyServiceServer).GetRates(ctx, req.(*GetRateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -112,8 +112,8 @@ var CurrencyService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CurrencyServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SayHello",
-			Handler:    _CurrencyService_SayHello_Handler,
+			MethodName: "GetRates",
+			Handler:    _CurrencyService_GetRates_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

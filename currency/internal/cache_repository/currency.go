@@ -5,19 +5,9 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/Sevn9/currency-screener/currency/internal/dto"
 )
-
-type CurrencyRateResponseDTO struct {
-	Date time.Time
-	Rate float32
-}
-
-type CurrencyRateRequestDTO struct {
-	BaseCurrency   string
-	TargetCurrency string
-	DateFrom       time.Time
-	DateTo         time.Time
-}
 
 type Currency struct {
 	Date         time.Time
@@ -50,13 +40,13 @@ func (s *MemoryRateStorage) Save(
 
 func (s *MemoryRateStorage) GetCurrencyRatesInInterval(
 	ctx context.Context,
-	req CurrencyRateRequestDTO,
-) ([]CurrencyRateResponseDTO, error) {
+	req *dto.CurrencyRateRequestDTO,
+) ([]dto.CurrencyRateResponseDTO, error) {
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var result []CurrencyRateResponseDTO
+	var result []dto.CurrencyRateResponseDTO
 
 	// go by dates from DateFrom to DateTo
 	for d := req.DateFrom; !d.After(req.DateTo); d = d.Add(24 * time.Hour) {
@@ -73,7 +63,7 @@ func (s *MemoryRateStorage) GetCurrencyRatesInInterval(
 			continue // the required currency pair is not available on this date
 		}
 
-		result = append(result, CurrencyRateResponseDTO{
+		result = append(result, dto.CurrencyRateResponseDTO{
 			Date: d,
 			Rate: float32(rate),
 		})
