@@ -48,10 +48,16 @@ func (s *MemoryRateStorage) GetCurrencyRatesInInterval(
 
 	var result []dto.CurrencyRateResponseDTO
 
-	// go by dates from DateFrom to DateTo
-	for d := req.DateFrom; !d.After(req.DateTo); d = d.Add(24 * time.Hour) {
+	dateFromUTC := normalizeDateToUTC(req.DateFrom)
+	dateToUTC := normalizeDateToUTC(req.DateTo)
 
-		key := fmt.Sprintf("%s:%s", d.Format("2006-01-02"), req.BaseCurrency)
+	// go by dates from DateFrom to DateTo
+	for d := dateFromUTC; !d.After(dateToUTC); d = d.Add(24 * time.Hour) {
+
+		// An additional check just in case: we make sure that d is always UTC.
+		dInUTC := d.In(time.UTC)
+
+		key := fmt.Sprintf("%s:%s", dInUTC.Format("2006-01-02"), req.BaseCurrency)
 
 		currency, ok := s.data[key]
 		if !ok {
@@ -64,10 +70,15 @@ func (s *MemoryRateStorage) GetCurrencyRatesInInterval(
 		}
 
 		result = append(result, dto.CurrencyRateResponseDTO{
-			Date: d,
+			Date: dInUTC,
 			Rate: float32(rate),
 		})
 	}
 
 	return result, nil
+}
+
+func normalizeDateToUTC(t time.Time) time.Time {
+	y, m, d := t.In(time.UTC).Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }

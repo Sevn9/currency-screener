@@ -66,6 +66,7 @@ func run() error {
 		return err
 	}
 
+	//---
 	currClientTemp, er := currClient.GetCurrentRate(ctx)
 	if er != nil {
 		logger.Error("main: error GetCurrentRate create:",
@@ -73,11 +74,15 @@ func run() error {
 		return err
 	}
 	_ = currClientTemp
+	//---
 
 	cacheRepo := cache_repository.NewMemoryRateStorage()
 
 	//added services
 	svc := services.NewCurrencyService(cacheRepo, currClient, logger)
+
+	//temp: save to cache
+	svc.FetchAndSaveCurrencyRate(ctx, "RUB")
 
 	//конфигурируем gRPC сервер
 	currencyServer := handler.NewCurrencyServer(svc, logger)
