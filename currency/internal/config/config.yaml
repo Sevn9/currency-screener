@@ -13,12 +13,12 @@ currency_api_config:
   api_url: "https://latest.currency-api.pages.dev"
 
 
-# database:
-#   host: localhost
-#   port: 5432
-#   username: admin
-#   password: secret123
-#   dbname: myapp
+database_postgres:
+  host: localhost
+  port: 5432
+  username: admin
+  password: secret123
+  dbname: myapp
 
 # logging:
 #   level: info

@@ -24,13 +24,13 @@ type PublicCurrencyAPIConfig struct {
 	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
-// type DatabaseConfig struct {
-// 	Host     string `mapstructure:"host"`
-// 	Port     int    `mapstructure:"port"`
-// 	Username string `mapstructure:"username"`
-// 	Password string `mapstructure:"password"`
-// 	DBName   string `mapstructure:"dbname"`
-// }
+type DatabasePostgresConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	DBName   string `mapstructure:"dbname"`
+}
 
 // type LoggingConfig struct {
 // 	Level  string `mapstructure:"level"`
@@ -41,6 +41,7 @@ type AppConfig struct {
 	Service           ServiceConfig           `mapstructure:"grpc_service_config"`
 	PublicCurrencyApi PublicCurrencyAPIConfig `mapstructure:"currency_api_config"`
 	ManagementService ManagementConfig        `mapstructure:"management_service_config"`
+	PostgresDb        DatabasePostgresConfig  `mapstructure:"database_postgres"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

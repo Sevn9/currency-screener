@@ -8,19 +8,22 @@ import (
 	"github.com/Sevn9/currency-screener/currency/internal/cache_repository"
 	"github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/dto"
+	"github.com/Sevn9/currency-screener/currency/internal/repository"
 	"go.uber.org/zap"
 )
 
 // сurrencyService interface realization
 type currencyService struct {
 	cacheRepo      *cache_repository.MemoryRateStorage
+	dbRepo         *repository.CurrencyPostgres
 	currencyClient currency.CurrencyClient
 	logger         *zap.Logger
 }
 
-func NewCurrencyService(cacheRepository *cache_repository.MemoryRateStorage, client currency.CurrencyClient, logger *zap.Logger) *currencyService {
+func NewCurrencyService(cacheRepository *cache_repository.MemoryRateStorage, dbRepository *repository.CurrencyPostgres, client currency.CurrencyClient, logger *zap.Logger) *currencyService {
 	return &currencyService{
 		cacheRepo:      cacheRepository,
+		dbRepo:         dbRepository,
 		currencyClient: client,
 		logger:         logger,
 	}
@@ -46,6 +49,8 @@ func (c *currencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurr
 	c.logger.Info("currency save to cache", zap.Any("rates", currClientTemp.Rub))
 
 	//todo: save currency rate to db
+	c.dbRepo.Save(ctx, date, baseCurrency, currClientTemp.Rub)
+	c.logger.Info("currency save to db", zap.Any("rates", currClientTemp.Rub))
 
 	return nil
 }

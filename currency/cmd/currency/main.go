@@ -15,8 +15,10 @@ import (
 	"github.com/Sevn9/currency-screener/currency/internal/cache_repository"
 	currencyClient "github.com/Sevn9/currency-screener/currency/internal/clients/currency"
 	"github.com/Sevn9/currency-screener/currency/internal/config"
+	"github.com/Sevn9/currency-screener/currency/internal/db"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
 	"github.com/Sevn9/currency-screener/currency/internal/handler/rest/healthz"
+	"github.com/Sevn9/currency-screener/currency/internal/repository"
 	"github.com/Sevn9/currency-screener/currency/internal/services"
 	"github.com/Sevn9/currency-screener/pkg/currency"
 	"go.uber.org/zap"
@@ -76,10 +78,20 @@ func run() error {
 	_ = currClientTemp
 	//---
 
+	//added cache_repository
 	cacheRepo := cache_repository.NewMemoryRateStorage()
 
+	//added db repository
+	pool, err := db.NewPgxPool(cfg.PostgresDb)
+	if err != nil {
+		log.Fatalf("failed to connect to pgx db: %v", err)
+	}
+	defer pool.Close()
+
+	dbRepo, err := repository.NewCurrencyPostgres(pool)
+
 	//added services
-	svc := services.NewCurrencyService(cacheRepo, currClient, logger)
+	svc := services.NewCurrencyService(cacheRepo, dbRepo, currClient, logger)
 
 	//temp: save to cache
 	svc.FetchAndSaveCurrencyRate(ctx, "RUB")
