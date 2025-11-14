@@ -18,6 +18,7 @@ import (
 	"github.com/Sevn9/currency-screener/currency/internal/db"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
 	"github.com/Sevn9/currency-screener/currency/internal/handler/rest/healthz"
+	"github.com/Sevn9/currency-screener/currency/internal/migrations"
 	"github.com/Sevn9/currency-screener/currency/internal/repository"
 	"github.com/Sevn9/currency-screener/currency/internal/services"
 	"github.com/Sevn9/currency-screener/pkg/currency"
@@ -84,11 +85,37 @@ func run() error {
 	//added db repository
 	pool, err := db.NewPgxPool(cfg.PostgresDb)
 	if err != nil {
-		log.Fatalf("failed to connect to pgx db: %v", err)
+		logger.Error("main: failed to connect to pgx db",
+			zap.Error(err))
+		return err
 	}
 	defer pool.Close()
 
+	if err := pool.Ping(ctx); err != nil {
+		logger.Error("main: failed ping to pgx db",
+			zap.Error(err))
+		return err
+	}
+
 	dbRepo, err := repository.NewCurrencyPostgres(pool)
+
+	if err != nil {
+		logger.Error("main: failed create db",
+			zap.Error(err))
+		return err
+	}
+
+	// added migrator
+	m := migrations.NewMigrator()
+
+	// apply migrations
+	if err := m.ApplyMigrations(pool); err != nil {
+		logger.Error("main: failed apply migrations",
+			zap.Error(err))
+		return err
+	}
+
+	logger.Info("Migrations applied successfully!")
 
 	//added services
 	svc := services.NewCurrencyService(cacheRepo, dbRepo, currClient, logger)
@@ -173,7 +200,7 @@ func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServ
 
 	grpcServer := grpc.NewServer()
 
-	//todo: регистрация сервисов
+	//registration services
 	currency.RegisterCurrencyServiceServer(grpcServer, currencyServer)
 
 	errCh := make(chan error, 1)
