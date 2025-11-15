@@ -31,11 +31,11 @@ func NewCurrencyService(cacheRepository *cache_repository.MemoryRateStorage, dbR
 
 func (c *currencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurrency string) error {
 	//get currency rate
-	currClientTemp, er := c.currencyClient.GetCurrentRate(ctx)
-	if er != nil {
+	currClientTemp, err := c.currencyClient.GetCurrentRate(ctx)
+	if err != nil {
 		c.logger.Error("services: error GetCurrentRate create:",
-			zap.Error(er))
-		return fmt.Errorf("services: error GetCurrentRate create: %v ", er)
+			zap.Error(err))
+		return fmt.Errorf("services: error GetCurrentRate create: %v ", err)
 	}
 
 	date, err := time.Parse("2006-01-02", currClientTemp.Date)
@@ -48,20 +48,28 @@ func (c *currencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurr
 	c.cacheRepo.Save(ctx, date, baseCurrency, currClientTemp.Rub)
 	c.logger.Info("currency save to cache", zap.Any("rates", currClientTemp.Rub))
 
-	//todo: save currency rate to db
-	c.dbRepo.Save(ctx, date, baseCurrency, currClientTemp.Rub)
-	c.logger.Info("currency save to db", zap.Any("rates", currClientTemp.Rub))
+	//save currency rate to db
+	err = c.dbRepo.Save(ctx, date, baseCurrency, currClientTemp.Rub)
 
+	if err != nil {
+		c.logger.Error("error currency save to db", zap.Error(err))
+		return fmt.Errorf("failed to save currency rates to database: %w", err)
+	} else {
+		c.logger.Info("currency save to db", zap.Any("rates", currClientTemp.Rub))
+	}
 	return nil
 }
 
 func (c *currencyService) GetCurrencyRateFromInterval(ctx context.Context, reqDto *dto.CurrencyRateRequestDTO) ([]dto.CurrencyRateResponseDTO, error) {
 
 	//get from cache
-	result, err := c.cacheRepo.GetCurrencyRatesInInterval(ctx, reqDto)
+	//result, err := c.cacheRepo.GetCurrencyRatesInInterval(ctx, reqDto)
+
+	result, err := c.dbRepo.GetCurrencyRatesInInterval(ctx, reqDto)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse currency date: %v ", err)
+		c.logger.Error("services: error get currency", zap.Error(err))
+		return nil, fmt.Errorf("services: error get currency: %v ", err)
 	}
 
 	return result, nil

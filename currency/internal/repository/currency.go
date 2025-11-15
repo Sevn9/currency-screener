@@ -49,10 +49,8 @@ func (s *CurrencyPostgres) Save(
 	_, err = s.DB.Exec(
 		ctx,
 		`INSERT INTO exchange_rates (date, base_currency, currency_rates)
-		 VALUES ($1, $2, $3)
-		 ON CONFLICT (date, base_currency)
-		 DO UPDATE SET currency_rates = EXCLUDED.currency_rates`,
-		date.UTC(), baseCurrency, ratesJSON,
+		 VALUES ($1, $2, $3)`,
+		date, baseCurrency, ratesJSON,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to save exchange rates: %w", err)
@@ -82,6 +80,7 @@ func (s *CurrencyPostgres) GetCurrencyRatesInInterval(
 		req.DateTo.Format("2006-01-02"),
 		req.BaseCurrency,
 	)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to query exchange rates: %w", err)
 	}
