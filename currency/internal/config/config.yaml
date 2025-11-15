@@ -16,9 +16,9 @@ currency_api_config:
 database_postgres:
   host: localhost
   port: 5432
-  username: postgres
+  username: currency1
   password: secret123
-  dbname: currencyDb
+  dbname: currency_db
 
 # logging:
 #   level: info

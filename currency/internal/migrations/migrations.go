@@ -50,9 +50,10 @@ func (m *Migrator) ApplyMigrations(pool *pgxpool.Pool) error {
 		return fmt.Errorf("unable to create migration: %w", err)
 	}
 
-	// Закрываем мигратор в конце работы функции.
+	// Закрываем мигратор и подключение в конце работы функции.
 	defer func() {
 		migrator.Close()
+		conn.Close()
 	}()
 
 	// Применяем миграции.

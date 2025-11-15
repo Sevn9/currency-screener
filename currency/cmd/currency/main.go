@@ -29,6 +29,7 @@ import (
 func main() {
 	fmt.Println("main: currency microservice start")
 	if err := run(); err != nil {
+		fmt.Println("main: error end")
 		log.Fatal("main: " + err.Error())
 	}
 	fmt.Println("main: currency microservice end")
