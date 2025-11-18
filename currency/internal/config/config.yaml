@@ -20,6 +20,13 @@ database_postgres:
   password: secret123
   dbname: currency_db
 
+worker:
+  schedule: "@daily"
+  timeout: 5
+  currency_pair:
+    base_currency: "RUB"
+    target_currency: "USD"
+
 # logging:
 #   level: info
 #   format: json

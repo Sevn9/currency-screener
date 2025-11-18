@@ -13,15 +13,15 @@ import (
 )
 
 // сurrencyService interface realization
-type currencyService struct {
+type CurrencyService struct {
 	cacheRepo      *cache_repository.MemoryRateStorage
 	dbRepo         *repository.CurrencyPostgres
 	currencyClient currency.CurrencyClient
 	logger         *zap.Logger
 }
 
-func NewCurrencyService(cacheRepository *cache_repository.MemoryRateStorage, dbRepository *repository.CurrencyPostgres, client currency.CurrencyClient, logger *zap.Logger) *currencyService {
-	return &currencyService{
+func NewCurrencyService(cacheRepository *cache_repository.MemoryRateStorage, dbRepository *repository.CurrencyPostgres, client currency.CurrencyClient, logger *zap.Logger) *CurrencyService {
+	return &CurrencyService{
 		cacheRepo:      cacheRepository,
 		dbRepo:         dbRepository,
 		currencyClient: client,
@@ -29,7 +29,7 @@ func NewCurrencyService(cacheRepository *cache_repository.MemoryRateStorage, dbR
 	}
 }
 
-func (c *currencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurrency string) error {
+func (c *CurrencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurrency string) error {
 	//get currency rate
 	currClientTemp, err := c.currencyClient.GetCurrentRate(ctx)
 	if err != nil {
@@ -60,7 +60,7 @@ func (c *currencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurr
 	return nil
 }
 
-func (c *currencyService) GetCurrencyRateFromInterval(ctx context.Context, reqDto *dto.CurrencyRateRequestDTO) ([]dto.CurrencyRateResponseDTO, error) {
+func (c *CurrencyService) GetCurrencyRateFromInterval(ctx context.Context, reqDto *dto.CurrencyRateRequestDTO) ([]dto.CurrencyRateResponseDTO, error) {
 
 	//get from cache
 	//result, err := c.cacheRepo.GetCurrencyRatesInInterval(ctx, reqDto)

@@ -32,6 +32,15 @@ type DatabasePostgresConfig struct {
 	DBName   string `mapstructure:"dbname"`
 }
 
+type WorkerConfig struct {
+	Schedule     string `mapstructure:"schedule"`
+	Timeout      int    `mapstructure:"timeout"`
+	CurrencyPair struct {
+		BaseCurrency   string `mapstructure:"base_currency"`
+		TargetCurrency string `mapstructure:"target_currency"`
+	} `mapstructure:"currency_pair"`
+}
+
 // type LoggingConfig struct {
 // 	Level  string `mapstructure:"level"`
 // 	Format string `mapstructure:"format"`
@@ -42,6 +51,7 @@ type AppConfig struct {
 	PublicCurrencyApi PublicCurrencyAPIConfig `mapstructure:"currency_api_config"`
 	ManagementService ManagementConfig        `mapstructure:"management_service_config"`
 	PostgresDb        DatabasePostgresConfig  `mapstructure:"database_postgres"`
+	Worker            WorkerConfig            `mapstructure:"worker"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

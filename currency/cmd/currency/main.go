@@ -42,7 +42,8 @@ func run() error {
 		}
 	}()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	logger, _ := zap.NewProduction()
 	//cброс (flush) всех буферизованных записей логов во внешнее хранилище
