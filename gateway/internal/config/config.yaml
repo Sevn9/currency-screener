@@ -1,0 +1,8 @@
+grpc_client_config:
+  currency_service_url: "localhost:50051"
+  timeout_seconds: 30
+
+gateway_service_config:
+  host: localhost
+  port: "8082"
+  timeout_seconds: 30
