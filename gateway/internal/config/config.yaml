@@ -4,5 +4,8 @@ grpc_client_config:
 
 gateway_service_config:
   host: localhost
-  port: "8082"
+  port: ":8082"
   timeout_seconds: 30
+
+auth_api_service:
+  base_url: "http://localhost:8082"

@@ -18,9 +18,14 @@ type GrpcClientConfig struct {
 	TimeoutSeconds     int    `mapstructure:"timeout_seconds"`
 }
 
+type AuthApiServiceConfig struct {
+	AuthUrl string `mapstructure:"base_url"`
+}
+
 type AppConfig struct {
-	Service          ServiceConfig    `mapstructure:"gateway_service_config"`
-	GrpcClientConfig GrpcClientConfig `mapstructure:"grpc_client_config"`
+	Service          ServiceConfig        `mapstructure:"gateway_service_config"`
+	GrpcClientConfig GrpcClientConfig     `mapstructure:"grpc_client_config"`
+	AuthApi          AuthApiServiceConfig `mapstructure:"auth_api_service"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {
