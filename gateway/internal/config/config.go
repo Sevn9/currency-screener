@@ -19,7 +19,8 @@ type GrpcClientConfig struct {
 }
 
 type AuthApiServiceConfig struct {
-	AuthUrl string `mapstructure:"base_url"`
+	AuthUrl        string `mapstructure:"base_url"`
+	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
 type AppConfig struct {

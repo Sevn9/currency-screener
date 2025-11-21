@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,8 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Sevn9/currency-screener/gateway/internal/clients/auth"
 	"github.com/Sevn9/currency-screener/gateway/internal/config"
-	//ginzap "github.com/gin-contrib/zap"
+	"github.com/Sevn9/currency-screener/gateway/internal/handler"
+	"github.com/Sevn9/currency-screener/gateway/internal/middleware"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -46,10 +50,29 @@ func run() error {
 
 	// Added gin router
 	router := gin.New()
-	//router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
-	//router.Use(ginzap.RecoveryWithZap(logger, true))
+	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+	router.Use(ginzap.RecoveryWithZap(logger, true))
 
-	// todo: Route registration
+	// auth client
+	authClient, err := auth.NewAuthClient(cfg.AuthApi)
+	if err != nil {
+		return fmt.Errorf("auth.NewAuthClient: %w", err)
+	}
+
+	resp, err := authClient.Ping()
+	if err != nil {
+		//return fmt.Errorf("authClient.Ping: %w", err)
+	}
+
+	if resp != "pong" {
+		//return fmt.Errorf("auth client answered with invalid response: %w", err)
+	}
+
+	// auth middleware
+	authMiddleware := middleware.NewAuthorization(authClient, logger)
+
+	// Route registration
+	handler.RegisterRoutes(router, logger, authMiddleware)
 
 	// Setting up the server
 	srv := &http.Server{
@@ -81,12 +104,5 @@ func run() error {
 		log.Fatal("Server forced to shutdown:", err)
 	}
 
-	// r.GET("/ping", func(c *gin.Context) {
-	// 	c.JSON(200, gin.H{
-	// 		"message": "pong",
-	// 	})
-	// })
-
-	// r.Run(":8080")
 	return nil
 }

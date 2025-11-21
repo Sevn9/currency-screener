@@ -9,3 +9,4 @@ gateway_service_config:
 
 auth_api_service:
   base_url: "http://localhost:8082"
+  timeout_seconds: 30
