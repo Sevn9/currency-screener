@@ -28,10 +28,17 @@ func NewAuthorization(authClient authClient, logger *zap.Logger) Authorization {
 func (auth *Authorization) Authorize() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
+
+		if authHeader == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization token is required"})
+			c.Abort()
+			return
+		}
 		authHeaderParts := strings.Split(authHeader, " ")
 
 		if len(authHeaderParts) != 2 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
 			return
 		}
 

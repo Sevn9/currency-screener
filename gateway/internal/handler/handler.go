@@ -36,7 +36,7 @@ func RegisterRoutes(
 	}
 
 	//private routes
-	protected := router.Group("")
+	protected := router.Group("/api/v1")
 	protected.Use(authMiddleware.Authorize())
 	{
 		protected.POST("/logout", cntrl.Logout)

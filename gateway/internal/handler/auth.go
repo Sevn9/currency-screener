@@ -38,11 +38,6 @@ func (s *Controller) Register(c *gin.Context) {
 }
 
 func (s *Controller) Logout(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization token is required"})
-		return
-	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "logout successful"})
 }
