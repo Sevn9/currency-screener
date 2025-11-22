@@ -16,6 +16,8 @@ import (
 	"github.com/Sevn9/currency-screener/gateway/internal/config"
 	"github.com/Sevn9/currency-screener/gateway/internal/handler"
 	"github.com/Sevn9/currency-screener/gateway/internal/middleware"
+	"github.com/Sevn9/currency-screener/gateway/internal/repository"
+	"github.com/Sevn9/currency-screener/gateway/internal/services"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -61,6 +63,7 @@ func run() error {
 
 	resp, err := authClient.Ping()
 	if err != nil {
+		//todo: up auth services
 		//return fmt.Errorf("authClient.Ping: %w", err)
 	}
 
@@ -68,11 +71,17 @@ func run() error {
 		//return fmt.Errorf("auth client answered with invalid response: %w", err)
 	}
 
-	// auth middleware
+	// add middleware
 	authMiddleware := middleware.NewAuthorization(authClient, logger)
 
+	//add repository
+	userRepo := repository.NewUserRepository()
+
+	//add services
+	authService := services.NewAuth(authClient, userRepo)
+
 	// Route registration
-	handler.RegisterRoutes(router, logger, authMiddleware)
+	handler.RegisterRoutes(router, logger, authMiddleware, authService)
 
 	// Setting up the server
 	srv := &http.Server{

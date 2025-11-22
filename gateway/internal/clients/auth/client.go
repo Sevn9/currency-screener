@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,15 +10,7 @@ import (
 	"time"
 
 	"github.com/Sevn9/currency-screener/gateway/internal/config"
-)
-
-var (
-	ErrUnexpectedStatusCode = errors.New("unexpected status code")
-	ErrInvalidCredentials   = errors.New("invalid credentials")
-	ErrTokenGeneration      = errors.New("token generation failed")
-
-	ErrTokenNotFound         = errors.New("token not found in header")
-	ErrInvalidOrExpiredToken = errors.New("invalid signature or token expired")
+	"github.com/Sevn9/currency-screener/pkg/apperrors"
 )
 
 const (
@@ -109,11 +100,11 @@ func (c *Client) GenerateToken(ctx context.Context, login string) (string, error
 		}
 		return string(bodyBytes), nil
 	case http.StatusBadRequest:
-		return "", fmt.Errorf("%w: bad request", ErrTokenGeneration)
+		return "", fmt.Errorf("%w: bad request", apperrors.ErrTokenGeneration)
 	case http.StatusUnauthorized:
-		return "", fmt.Errorf("%w: unauthorized", ErrInvalidCredentials)
+		return "", fmt.Errorf("%w: unauthorized", apperrors.ErrInvalidCredentials)
 	default:
-		return "", fmt.Errorf("%w: %d", ErrUnexpectedStatusCode, resp.StatusCode)
+		return "", fmt.Errorf("%w: %d", apperrors.ErrUnexpectedStatusCode, resp.StatusCode)
 	}
 }
 
@@ -155,10 +146,10 @@ func (c *Client) ValidateToken(ctx context.Context, token string) error {
 
 	switch resp.StatusCode {
 	case http.StatusBadRequest:
-		return fmt.Errorf("%w: %s", ErrTokenNotFound, errorMessage)
+		return fmt.Errorf("%w: %s", apperrors.ErrTokenNotFound, errorMessage)
 	case http.StatusUnauthorized:
-		return fmt.Errorf("%w: %s", ErrInvalidOrExpiredToken, errorMessage)
+		return fmt.Errorf("%w: %s", apperrors.ErrInvalidOrExpiredToken, errorMessage)
 	default:
-		return fmt.Errorf("%w %d: %s", ErrUnexpectedStatusCode, resp.StatusCode, errorMessage)
+		return fmt.Errorf("%w %d: %s", apperrors.ErrUnexpectedStatusCode, resp.StatusCode, errorMessage)
 	}
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/Sevn9/currency-screener/gateway/internal/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,8 +25,11 @@ func (s *Controller) Login(c *gin.Context) {
 		return
 	}
 
-	// todo token logic
-	token := "generated_jwt_token_here"
+	token, err := s.authService.Login(c.Request.Context(), req.Username, req.Password)
+	if err != nil {
+		s.handleError(c, err)
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
@@ -34,10 +38,30 @@ func (s *Controller) Login(c *gin.Context) {
 }
 
 func (s *Controller) Register(c *gin.Context) {
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered"})
+	var req registerRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = s.authService.Register(dto.RegisterRequest(req))
+	if err != nil {
+		s.handleError(c, err)
+		return
+	}
+
+	c.Status(http.StatusCreated)
 }
 
 func (s *Controller) Logout(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+
+	err := s.authService.Logout(token)
+	if err != nil {
+		s.handleError(c, err)
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "logout successful"})
 }
