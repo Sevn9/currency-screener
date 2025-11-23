@@ -40,7 +40,7 @@ func (repo *UserRepository) GetUser(ctx context.Context, login string) (User, er
 
 	user, exists := repo.users[login]
 	if !exists {
-		return User{}, apperrors.ErrUserNotFound
+		return User{}, apperrors.NotFoundError{Entity: "User", ID: login}
 	}
 
 	return user, nil

@@ -10,21 +10,24 @@ import (
 )
 
 type Controller struct {
-	authService services.AuthService
-	router      *gin.Engine
-	logger      *zap.Logger
+	authService     services.AuthService
+	currencyService services.CurrencyService
+	router          *gin.Engine
+	logger          *zap.Logger
 }
 
 func RegisterRoutes(
 	router *gin.Engine,
 	logger *zap.Logger,
 	authMiddleware middleware.Authorization,
-	authService services.AuthService) {
+	authService services.AuthService,
+	currencyService services.CurrencyService) {
 
 	cntrl := Controller{
-		router:      router,
-		logger:      logger,
-		authService: authService,
+		router:          router,
+		logger:          logger,
+		authService:     authService,
+		currencyService: currencyService,
 	}
 
 	// Global health-check
@@ -46,8 +49,6 @@ func RegisterRoutes(
 		protected.POST("/logout", cntrl.Logout)
 
 		// GET/api/v1/rate
-		//todo: add GetCurrencyRates
-		//protected.GET("/rate", cntrl.GetCurrencyRates)
+		protected.GET("/rate", cntrl.GetCurrencyRates)
 	}
-
 }

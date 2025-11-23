@@ -18,6 +18,7 @@ import (
 	"github.com/Sevn9/currency-screener/gateway/internal/middleware"
 	"github.com/Sevn9/currency-screener/gateway/internal/repository"
 	"github.com/Sevn9/currency-screener/gateway/internal/services"
+	"github.com/Sevn9/currency-screener/pkg/grpc_client"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -71,6 +72,18 @@ func run() error {
 		//return fmt.Errorf("auth client answered with invalid response: %w", err)
 	}
 
+	// currency client
+	currencyClient, conn, err := grpc_client.NewCurrencyServiceClient(cfg.GrpcClientConfig.CurrencyServiceUrl)
+	if err != nil {
+		return fmt.Errorf("grpc_client.NewCurrencyServiceClient: %w", err)
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logger.Warn("Cannot close GRPC Client for auth service", zap.Error(err))
+		}
+	}()
+
 	// add middleware
 	authMiddleware := middleware.NewAuthorization(authClient, logger)
 
@@ -79,9 +92,10 @@ func run() error {
 
 	//add services
 	authService := services.NewAuth(authClient, userRepo)
+	currencyService := services.NewCurrency(currencyClient)
 
 	// Route registration
-	handler.RegisterRoutes(router, logger, authMiddleware, authService)
+	handler.RegisterRoutes(router, logger, authMiddleware, authService, currencyService)
 
 	// Setting up the server
 	srv := &http.Server{
