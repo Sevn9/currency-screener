@@ -26,7 +26,7 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func NewAuthClient(cfg config.AuthApiServiceConfig) (*Client, error) { // todo pass config
+func NewAuthClient(cfg config.AuthApiServiceConfig) (*Client, error) {
 	parsedURL, err := url.Parse(cfg.AuthUrl)
 	if err != nil {
 		return nil, fmt.Errorf("invalid base URL: %w", err)
