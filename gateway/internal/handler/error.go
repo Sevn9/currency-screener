@@ -26,7 +26,7 @@ func (s *Controller) handleError(c *gin.Context, err error) {
 
 	case errors.Is(err, apperrors.ErrUnexpectedStatusCode):
 		log.Printf("unexpected status code error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unexpected server error"}) // Обычный ответ клиенту
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unexpected server error"})
 
 	case errors.Is(err, apperrors.ErrInvalidCredentials):
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
