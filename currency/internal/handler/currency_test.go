@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCurrency_GetRates_Success(t *testing.T) {
+func Test_GetCurrencyRateFromInterval_Success(t *testing.T) {
 	//arrange
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
