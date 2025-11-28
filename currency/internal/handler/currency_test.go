@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Sevn9/currency-screener/currency/internal/dto"
 	mock_handler "github.com/Sevn9/currency-screener/currency/internal/handler/mocks"
 	"github.com/Sevn9/currency-screener/pkg/currency"
 	"go.uber.org/mock/gomock"
@@ -19,25 +20,9 @@ func TestCurrency_GetRates_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockService := mock_handler.NewMockCurrencyService(ctrl)
-	// Создаем мок-объект сервиса
-	mockService.EXPECT().GetCurrencyRateFromInterval(
-		gomock.Any(), // Любой контекст
-		&currency.GetRateRequest{ // Конкретный пустой запрос
-			Currency: "",
-			DateFrom: nil,
-			DateTo:   nil,
-		},
-	).Return(&currency.GetRateResponse{}, nil) // Вернуть пустой ответ и нет ошибки
 
 	// Создаем "пустой" логгер специально для тестов
 	testLogger := zap.NewNop()
-
-	//create server
-	server := NewCurrencyServer(mockService, testLogger)
-
-	expected := &currency.GetRateResponse{} // Ожидаем пустой ответ (т.к. мок его вернул)
-
-	ctx := context.Background()
 
 	req := &currency.GetRateRequest{
 		Currency: "",
@@ -45,10 +30,34 @@ func TestCurrency_GetRates_Success(t *testing.T) {
 		DateTo:   nil,
 	}
 
+	expectedDTO := dto.CurrencyRequestDTOFromProtobuf(req, dto.DefaultBaseCurrency)
+
+	serviceResponse := []dto.CurrencyRateResponseDTO{}
+
+	// Создаем мок-объект сервиса
+	mockService.EXPECT().GetCurrencyRateFromInterval(
+		gomock.Any(), // Любой контекст
+		gomock.Eq(expectedDTO),
+	).Return(serviceResponse, nil) // Вернуть пустой ответ и нет ошибки
+
+	//create server
+	server := NewCurrencyServer(mockService, testLogger)
+
+	expectedProtoResponse := &currency.GetRateResponse{
+		Currency: "",
+		Rates:    []*currency.RateRecord{},
+	}
+
+	ctx := context.Background()
+
 	// Act
 	fact, err := server.GetRates(ctx, req)
 
 	//Assert
-	require.NoError(t, err)         // Убедимся, что ошибки нет
-	assert.Equal(t, expected, fact) // Убедимся, что вернулся тот же объект, что и от мока
+	require.NoError(t, err)                                        // Убедимся, что ошибки нет
+	assert.Equal(t, expectedProtoResponse.Currency, fact.Currency) // Убедимся, что вернулся тот же объект, что и от мока
+
+	assert.Len(t, fact.Rates, 0)
+	// Убедимся, что это пустой слайс, а не nil
+	assert.NotNil(t, fact.Rates)
 }
