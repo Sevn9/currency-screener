@@ -1,0 +1,72 @@
+version: '3.8'
+
+
+services:
+  postgres:
+      image: postgres:17
+      environment:
+        POSTGRES_DB: currency_db
+        POSTGRES_USER: currency1
+        POSTGRES_PASSWORD: secret123
+        PGDATA: /data/postgres
+      ports:
+        - "5432:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U currency1 -d currency_db"]
+        interval: 1s
+        timeout: 1s
+        retries: 5
+
+  migrate:
+      image: migrate/migrate
+      command: >
+        -path /migrations
+        -database postgres://currency1:secret123@postgres:5432/currency_db?sslmode=disable 
+        up
+      volumes:
+        - ./currency/internal/migrations:/migrations
+      depends_on:
+        postgres:
+          condition: service_healthy
+  
+
+  auth-generator:
+    image: artyomyatsenko/final-task-auth-generator:latest
+    ports:
+      - "8082:8080"
+    environment:
+      AUTH_TOKEN_LIFETIME: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+  cron:
+    build:
+      context: .
+      dockerfile: ./deployment/local/Dockerfile
+      args:
+        - BUILD_TARGET=./currency/cmd/cron/main.go
+    volumes:
+      - ./deployment/local:/deployment/local  # Mount the local directory into the container
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["--config=/deployment/local/currency-local-config.yaml"]
+
+
+  currency:
+    build:
+      context: .
+      dockerfile: ./deployment/local/Dockerfile
+      args:
+        - BUILD_TARGET=./currency/cmd/currency/main.go
+    volumes:
+      - ./deployment/local:/deployment/local
+    ports:
+      - "8081:8081"
+      - "8090:8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["--config=/deployment/local/currency-local-config.yaml"]
