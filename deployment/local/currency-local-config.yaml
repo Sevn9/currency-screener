@@ -14,7 +14,7 @@ currency_api_config:
 
 
 database_postgres:
-  host: localhost
+  host: postgres
   port: 5432
   username: currency1
   password: secret123

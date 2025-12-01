@@ -5,6 +5,7 @@ services:
   postgres:
       image: postgres:17
       environment:
+        POSTGRES_HOST: postgres
         POSTGRES_DB: currency_db
         POSTGRES_USER: currency1
         POSTGRES_PASSWORD: secret123
