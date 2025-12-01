@@ -67,6 +67,7 @@ services:
     ports:
       - "8081:8081"
       - "8090:8090"
+      - "8099:8099"
     depends_on:
       postgres:
         condition: service_healthy
