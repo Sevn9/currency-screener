@@ -66,9 +66,21 @@ services:
       - ./deployment/local:/deployment/local
     ports:
       - "8081:8081"
-      - "8090:8090"
-      - "8099:8099"
+      - "8090:8090" #grpc
+      - "8099:8099" #healthcheck
     depends_on:
       postgres:
         condition: service_healthy
     command: ["--config=/deployment/local/currency-local-config.yaml"]
+
+gateway:
+    build:
+      context: .
+      dockerfile: ./deployment/local/Dockerfile
+      args:
+        - BUILD_TARGET=./gateway/cmd/gateway/main.go
+    volumes:
+      - ./deployment/local:/deployment/local
+    ports:
+      - "8080:8082"
+    command: ["--config=/deployment/local/gateway-local-config.yaml"]

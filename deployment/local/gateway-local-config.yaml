@@ -1,0 +1,12 @@
+grpc_client_config:
+  currency_service_url: "currency:8090"
+  timeout_seconds: 30
+
+gateway_service_config:
+  host: localhost
+  port: ":8082"
+  timeout_seconds: 30
+
+auth_api_service:
+  base_url: "http://auth-generator:8080"
+  timeout_seconds: 30
