@@ -37,7 +37,7 @@ func NewAuthClient(cfg config.AuthApiServiceConfig) (*Client, error) {
 			Transport:     nil,
 			CheckRedirect: nil,
 			Jar:           nil,
-			Timeout:       time.Duration(cfg.TimeoutSeconds),
+			Timeout:       time.Duration(cfg.TimeoutSeconds) * time.Second,
 		},
 	}, nil
 }
