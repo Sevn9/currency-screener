@@ -41,7 +41,9 @@ func Test_GetCurrencyRateFromInterval_Success(t *testing.T) {
 	).Return(serviceResponse, nil) // Вернуть пустой ответ и нет ошибки
 
 	//create server
-	server := NewCurrencyServer(mockService, testLogger)
+	server := NewCurrencyServer(
+		mockService,
+		testLogger)
 
 	expectedProtoResponse := &currency.GetRateResponse{
 		Currency: "",

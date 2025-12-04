@@ -18,13 +18,49 @@ import (
 	"github.com/Sevn9/currency-screener/currency/internal/db"
 	"github.com/Sevn9/currency-screener/currency/internal/handler"
 	"github.com/Sevn9/currency-screener/currency/internal/handler/rest/healthz"
+	"github.com/Sevn9/currency-screener/currency/internal/middleware"
 	"github.com/Sevn9/currency-screener/currency/internal/migrations"
 	"github.com/Sevn9/currency-screener/currency/internal/repository"
 	"github.com/Sevn9/currency-screener/currency/internal/services"
 	"github.com/Sevn9/currency-screener/pkg/currency"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
+
+var (
+	requestCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "currency_requests_total",
+			Help: "Total number of requests handled by the currency service",
+		},
+		[]string{"method"},
+	)
+
+	requestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "currency_request_duration_seconds",
+			Help:    "Histogram of response times for requests",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method"},
+	)
+
+	appUptime = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "currency_service_uptime_seconds",
+			Help: "Time since service start in seconds",
+		},
+	)
+)
+
+func init() {
+	// metrics register
+	prometheus.MustRegister(requestCount)
+	prometheus.MustRegister(requestDuration)
+	prometheus.MustRegister(appUptime)
+}
 
 func main() {
 	fmt.Println("main: currency microservice start")
@@ -122,14 +158,33 @@ func run() error {
 	//added services
 	svc := services.NewCurrencyService(cacheRepo, dbRepo, currClient, logger)
 
+	// Создаем сборщик метрик
+	metricsCollector := middleware.NewMetricsMiddleware(
+		requestCount,
+		requestDuration,
+		appUptime,
+	)
+
+	// Запускаем HTTP сервер для метрик Prometheus
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		log.Println("Prometheus metrics server running on :8081")
+		if err := http.ListenAndServe(":8081", nil); err != nil {
+			log.Fatalf("Error starting Prometheus metrics server: %s", err)
+		}
+	}()
+
 	//temp: save to cache
 	svc.FetchAndSaveCurrencyRate(ctx, "RUB")
 
 	//конфигурируем gRPC сервер
-	currencyServer := handler.NewCurrencyServer(svc, logger)
+	currencyServer := handler.NewCurrencyServer(
+		svc,
+		logger,
+	)
 
 	// запускаем gRPC сервер
-	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer, logger)
+	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer, metricsCollector, logger)
 	if err != nil {
 		logger.Error("main: error starting GRPC server:",
 			zap.Error(err))
@@ -162,45 +217,63 @@ func run() error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	select {
-	case <-stop: // пришёл сигнал на выключение
+	startTime := time.Now()
 
-		//shutdown http server
-		logger.Info("main: shutting down HTTP management server...")
-		httpCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
 
-		if err := srv.Shutdown(httpCtx); err != nil {
-			logger.Error("main: HTTP server forced to shutdown", zap.Error(err))
-		} else {
-			logger.Info("main: HTTP server stopped gracefully")
-		}
+	for {
+		select {
+		case <-stop: // пришёл сигнал на выключение
 
-		//shutdown grpc server
-		logger.Info("main: Shutting down gRPC server...")
-		return stopGRPC(5 * time.Second)
-
-	case serveErr := <-errCh: // сервер упал сам
-		if serveErr != nil {
-
-			logger.Error("main: gRPC server error", zap.Error(serveErr))
 			//shutdown http server
-			_ = srv.Close()
-			return serveErr
+			logger.Info("main: shutting down HTTP management server...")
+			httpCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := srv.Shutdown(httpCtx); err != nil {
+				logger.Error("main: HTTP server forced to shutdown", zap.Error(err))
+			} else {
+				logger.Info("main: HTTP server stopped gracefully")
+			}
+
+			//shutdown grpc server
+			logger.Info("main: Shutting down gRPC server...")
+			return stopGRPC(5 * time.Second)
+
+		case serveErr := <-errCh: // сервер упал сам
+			if serveErr != nil {
+
+				logger.Error("main: gRPC server error", zap.Error(serveErr))
+				//shutdown http server
+				_ = srv.Close()
+				return serveErr
+			}
+
+		case <-ticker.C:
+			// обновляем uptime через metricsCollector
+			uptime := time.Since(startTime).Seconds()
+			metricsCollector.SetUptime(uptime)
 		}
 	}
-
-	return err
 }
 
-func startGRPCServer(cfg *config.AppConfig, currencyServer *handler.CurrencyServer, logger *zap.Logger) (
+func startGRPCServer(
+	cfg *config.AppConfig,
+	currencyServer *handler.CurrencyServer,
+	metricsCollector *middleware.MetricsMiddleware,
+	logger *zap.Logger) (
 	func(timeout time.Duration) error, <-chan error, error) {
 	lis, err := net.Listen("tcp", ":"+cfg.Service.Port)
 	if err != nil {
 		return nil, nil, fmt.Errorf("main: failed to listen: %w", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			metricsCollector.UnaryInterceptor(), // Добавляем middleware метрик
+		),
+	)
 
 	//registration services
 	currency.RegisterCurrencyServiceServer(grpcServer, currencyServer)

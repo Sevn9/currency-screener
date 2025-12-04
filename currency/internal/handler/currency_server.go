@@ -21,7 +21,10 @@ type CurrencyServer struct {
 	logger  *zap.Logger
 }
 
-func NewCurrencyServer(svc CurrencyService, logger *zap.Logger) *CurrencyServer {
+func NewCurrencyServer(
+	svc CurrencyService,
+	logger *zap.Logger,
+) *CurrencyServer {
 	return &CurrencyServer{
 		service: svc,
 		logger:  logger,
