@@ -85,6 +85,27 @@ services:
       - "8080:8082"
     command: ["--config=/deployment/local/gateway-local-config.yaml"]
 
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      # Хранение логов на хосте
+      - ./monitoring/loki:/loki
+      # Подключение конфигурационного файла
+      - ./monitoring/loki/loki-config.yml:/etc/loki/config.yml
+
+  promtail:
+    image: grafana/promtail:latest
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      # Подключение конфигурационного файла Promtail
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro 
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
 
   prometheus:
     image: prom/prometheus:latest
