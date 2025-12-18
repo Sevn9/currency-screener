@@ -3,25 +3,40 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/Sevn9/currency-screener/gateway/internal/dto"
+	"github.com/Sevn9/currency-screener/gateway/internal/repository"
 	"github.com/Sevn9/currency-screener/pkg/currency"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type CurrencyService struct {
 	currencyClient currency.CurrencyServiceClient
+	cache          *repository.CurrencyRedisRepository
 }
 
-func NewCurrency(currencyClient currency.CurrencyServiceClient) CurrencyService {
+func NewCurrency(
+	currencyClient currency.CurrencyServiceClient,
+	cache *repository.CurrencyRedisRepository) CurrencyService {
 	return CurrencyService{
 		currencyClient: currencyClient,
+		cache:          cache,
 	}
 }
 
 func (s *CurrencyService) GetCurrencyRates(
 	ctx context.Context,
 	request dto.ParsedCurrencyRequest) (*dto.CurrencyResponse, error) {
+
+	// reading from cache
+	cachedResp, err := s.cache.Get(ctx, request)
+	if err != nil {
+		log.Printf("Error reading from cache: %v", err)
+	}
+	if cachedResp != nil {
+		return cachedResp, nil
+	}
 
 	pbResp, err := s.currencyClient.GetRates(
 		ctx, &currency.GetRateRequest{
@@ -48,5 +63,11 @@ func (s *CurrencyService) GetCurrencyRates(
 			},
 		)
 	}
+
+	// save to cache
+	if err := s.cache.Set(ctx, request, resp); err != nil {
+		log.Printf("Error saving to cache: %v", err)
+	}
+
 	return resp, nil
 }

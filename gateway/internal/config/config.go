@@ -23,10 +23,23 @@ type AuthApiServiceConfig struct {
 	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
+type RedisConfig struct {
+	Host            string `mapstructure:"host"`
+	Port            string `mapstructure:"port"`
+	Password        string `mapstructure:"password"`
+	Timeout_seconds int    `mapstructure:"timeout_seconds"`
+}
+
+type RedisDbNums struct {
+	CurrencyDb int `mapstructure:"currency_db"`
+}
+
 type AppConfig struct {
 	Service          ServiceConfig        `mapstructure:"gateway_service_config"`
 	GrpcClientConfig GrpcClientConfig     `mapstructure:"grpc_client_config"`
 	AuthApi          AuthApiServiceConfig `mapstructure:"auth_api_service"`
+	RedisConfig      RedisConfig          `mapstructure:"redis_config"`
+	RedisDbNums      RedisDbNums          `mapstructure:"Redis_db_nums"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

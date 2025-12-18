@@ -55,6 +55,17 @@ services:
         condition: service_healthy
     command: ["--config=/deployment/local/currency-local-config.yaml"]
 
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass RedisPassword
+    container_name: currency_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   currency:
     build:
@@ -83,6 +94,9 @@ services:
       - ./deployment/local:/deployment/local
     ports:
       - "8080:8082"
+    depends_on:
+      redis:
+        condition: service_healthy
     command: ["--config=/deployment/local/gateway-local-config.yaml"]
 
   loki:

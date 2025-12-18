@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Sevn9/currency-screener/gateway/internal/clients/auth"
+	"github.com/Sevn9/currency-screener/gateway/internal/clients/redis"
 	"github.com/Sevn9/currency-screener/gateway/internal/config"
 	"github.com/Sevn9/currency-screener/gateway/internal/handler"
 	"github.com/Sevn9/currency-screener/gateway/internal/middleware"
@@ -75,12 +76,27 @@ func run() error {
 	// currency client
 	currencyClient, conn, err := grpc_client.NewCurrencyServiceClient(cfg.GrpcClientConfig.CurrencyServiceUrl)
 	if err != nil {
-		return fmt.Errorf("grpc_client.NewCurrencyServiceClient: %w", err)
+		return fmt.Errorf("main: grpc_client.NewCurrencyServiceClient: %w", err)
 	}
 
 	defer func() {
 		if err := conn.Close(); err != nil {
-			logger.Warn("Cannot close GRPC Client for auth service", zap.Error(err))
+			logger.Warn("main: Cannot close GRPC Client for auth service", zap.Error(err))
+		}
+	}()
+
+	// redis client
+	redisClient, err := redis.NewClient(
+		cfg.RedisConfig.Host+":"+cfg.RedisConfig.Port,
+		cfg.RedisConfig.Password,
+		cfg.RedisDbNums.CurrencyDb)
+	if err != nil {
+		return fmt.Errorf("main: redisClient create failed: %w", err)
+	}
+
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			logger.Warn("main: Error closing Redis", zap.Error(err))
 		}
 	}()
 
@@ -89,10 +105,11 @@ func run() error {
 
 	//add repository
 	userRepo := repository.NewUserRepository()
+	redisRepo := repository.NewCurrencyRedisRepository(redisClient, 10*time.Minute)
 
 	//add services
 	authService := services.NewAuth(authClient, userRepo)
-	currencyService := services.NewCurrency(currencyClient)
+	currencyService := services.NewCurrency(currencyClient, redisRepo)
 
 	// Route registration
 	handler.RegisterRoutes(router, logger, authMiddleware, authService, currencyService)
