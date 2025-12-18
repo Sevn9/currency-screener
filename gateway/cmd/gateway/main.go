@@ -65,12 +65,11 @@ func run() error {
 
 	resp, err := authClient.Ping()
 	if err != nil {
-		//todo: up auth services
-		//return fmt.Errorf("authClient.Ping: %w", err)
+		return fmt.Errorf("authClient.Ping: %w", err)
 	}
 
 	if resp != "pong" {
-		//return fmt.Errorf("auth client answered with invalid response: %w", err)
+		return fmt.Errorf("auth client answered with invalid response: %w", err)
 	}
 
 	// currency client

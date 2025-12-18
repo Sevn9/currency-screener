@@ -44,8 +44,8 @@ func (c *CurrencyService) FetchAndSaveCurrencyRate(ctx context.Context, baseCurr
 		return fmt.Errorf("services: failed to parse currency date: %v ", err)
 	}
 
-	//save currency rate to cache
-	c.cacheRepo.Save(ctx, date, baseCurrency, currClientTemp.Rub)
+	//save currency rate to cache ram
+	//c.cacheRepo.Save(ctx, date, baseCurrency, currClientTemp.Rub)
 	c.logger.Info("currency save to cache", zap.Any("rates", currClientTemp.Rub))
 
 	//save currency rate to db

@@ -40,7 +40,7 @@ func (r *CurrencyRedisRepository) Get(ctx context.Context, req dto.ParsedCurrenc
 		if err == redis.Nil {
 			return nil, nil // cache empty
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get cache data: %w", err)
 	}
 
 	var response dto.CurrencyResponse

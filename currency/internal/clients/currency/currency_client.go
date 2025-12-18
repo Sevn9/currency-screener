@@ -55,8 +55,6 @@ func (c *CurrencyClient) GetCurrentRate(ctx context.Context) (ResponceCurrencyRa
 	//add base path to url
 	fullUrl := c.baseUrl.ResolveReference(url).String()
 
-	fmt.Println("currency: fullUrl: ", fullUrl)
-
 	request, err := http.NewRequestWithContext(ctxTimeout, http.MethodGet, fullUrl, nil)
 
 	if err != nil {
@@ -86,7 +84,6 @@ func (c *CurrencyClient) GetCurrentRate(ctx context.Context) (ResponceCurrencyRa
 			zap.Error(err))
 		return ResponceCurrencyRate{}, fmt.Errorf("reading responce body error: %w", err)
 	}
-	fmt.Println("Answer:", string(bodyBytes))
 
 	var rateResponse ResponceCurrencyRate
 	if err := json.Unmarshal(bodyBytes, &rateResponse); err != nil {

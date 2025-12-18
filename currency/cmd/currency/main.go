@@ -98,7 +98,7 @@ func run() error {
 		return err
 	}
 
-	//temp: запрос текущего курса
+	//currency client
 	currClient, err := currencyClient.NewCurrencyClient(cfg.PublicCurrencyApi, logger)
 
 	if err != nil {
@@ -107,17 +107,7 @@ func run() error {
 		return err
 	}
 
-	//---
-	currClientTemp, er := currClient.GetCurrentRate(ctx)
-	if er != nil {
-		logger.Error("main: error GetCurrentRate create:",
-			zap.Error(err))
-		return err
-	}
-	_ = currClientTemp
-	//---
-
-	//added cache_repository
+	//added ram cache_repository
 	cacheRepo := cache_repository.NewMemoryRateStorage()
 
 	//added db repository
@@ -174,7 +164,7 @@ func run() error {
 		}
 	}()
 
-	//temp: save to cache
+	//temp: first Save Currency data
 	svc.FetchAndSaveCurrencyRate(ctx, "RUB")
 
 	//конфигурируем gRPC сервер
