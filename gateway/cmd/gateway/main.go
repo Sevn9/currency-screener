@@ -87,7 +87,7 @@ func run() error {
 
 	// redis client
 	redisClient, err := redis.NewClient(
-		cfg.RedisConfig.Host+":"+cfg.RedisConfig.Port,
+		cfg.RedisConfig.Host+cfg.RedisConfig.Port,
 		cfg.RedisConfig.Password,
 		cfg.RedisDbNums.CurrencyDb)
 	if err != nil {
