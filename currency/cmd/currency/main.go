@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -85,7 +86,7 @@ func run() error {
 	//cброс (flush) всех буферизованных записей логов во внешнее хранилище
 	defer logger.Sync()
 
-	//загрузка конфигов
+	//config loading
 	//example: go run main.go -config=.../currency-screener/currency/internal/config/config.yaml
 	configPath := flag.String("config", "../../internal/config/config.yaml", "path to the config file")
 	flag.Parse()
@@ -167,13 +168,13 @@ func run() error {
 	//temp: first Save Currency data
 	svc.FetchAndSaveCurrencyRate(ctx, "RUB")
 
-	//конфигурируем gRPC сервер
+	//configurate gRPC server
 	currencyServer := handler.NewCurrencyServer(
 		svc,
 		logger,
 	)
 
-	// запускаем gRPC сервер
+	// starting gRPC server
 	stopGRPC, errCh, err := startGRPCServer(cfg, currencyServer, metricsCollector, logger)
 	if err != nil {
 		logger.Error("main: error starting GRPC server:",
@@ -203,6 +204,23 @@ func run() error {
 		}
 	}()
 
+	// create metrics server
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+
+	metricsSrv := &http.Server{
+		Addr:    cfg.MetricsConfig.Port,
+		Handler: metricsMux,
+	}
+
+	// Starting the server metrics Prometheus
+	go func() {
+		logger.Info("Starting Metrics server", zap.String("port", cfg.MetricsConfig.Port))
+		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Metrics server failed", zap.Error(err))
+		}
+	}()
+
 	//корректное завершение
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
@@ -214,7 +232,7 @@ func run() error {
 
 	for {
 		select {
-		case <-stop: // пришёл сигнал на выключение
+		case <-stop:
 
 			//shutdown http server
 			logger.Info("main: shutting down HTTP management server...")
@@ -227,11 +245,21 @@ func run() error {
 				logger.Info("main: HTTP server stopped gracefully")
 			}
 
+			//shutdown metrics server
+			metricsCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := metricsSrv.Shutdown(metricsCtx); err != nil {
+				logger.Error("Metrics server forced to shutdown", zap.Error(err))
+			} else {
+				logger.Info("Metrics server stopped gracefully")
+			}
+
 			//shutdown grpc server
 			logger.Info("main: Shutting down gRPC server...")
 			return stopGRPC(5 * time.Second)
 
-		case serveErr := <-errCh: // сервер упал сам
+		case serveErr := <-errCh: // panic or port cant access (сервер упал сам)
 			if serveErr != nil {
 
 				logger.Error("main: gRPC server error", zap.Error(serveErr))
@@ -241,7 +269,7 @@ func run() error {
 			}
 
 		case <-ticker.C:
-			// обновляем uptime через metricsCollector
+			// update uptime metricsCollector
 			uptime := time.Since(startTime).Seconds()
 			metricsCollector.SetUptime(uptime)
 		}
@@ -261,7 +289,7 @@ func startGRPCServer(
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
-			metricsCollector.UnaryInterceptor(), // Добавляем middleware метрик
+			metricsCollector.UnaryInterceptor(), // added metrics middleware
 		),
 	)
 
@@ -278,9 +306,7 @@ func startGRPCServer(
 		}()
 
 		logger.Info(
-			// Статическое сообщение (message)
 			"main: gRPC server is listening",
-			// Структурированное поле (Field) для порта
 			zap.String("port", cfg.Service.Port),
 			zap.String("protocol", "grpc"),
 		)

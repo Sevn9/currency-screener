@@ -183,7 +183,7 @@ func run() error {
 
 	// Starting the server metrics Prometheus
 	go func() {
-		logger.Info("Starting Metrics server", zap.String("port", ":8081"))
+		logger.Info("Starting Metrics server", zap.String("port", cfg.MetricsConfig.Port))
 		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Metrics server failed", zap.Error(err))
 		}
@@ -205,18 +205,20 @@ func run() error {
 		case <-stop:
 			logger.Info("Shutting down servers...")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			srvCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			// shutdown main server
-			if err := srv.Shutdown(ctx); err != nil {
+			if err := srv.Shutdown(srvCtx); err != nil {
 				logger.Error("main: Gateway server forced to shutdown", zap.Error(err))
 			} else {
 				logger.Info("main: Gateway server stopped gracefully")
 			}
 
+			metricsCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			// shutdown metrics server
-			if err := metricsSrv.Shutdown(ctx); err != nil {
+			if err := metricsSrv.Shutdown(metricsCtx); err != nil {
 				logger.Error("main: Metrics server forced to shutdown", zap.Error(err))
 			} else {
 				logger.Info("main: Metrics server stopped gracefully")
