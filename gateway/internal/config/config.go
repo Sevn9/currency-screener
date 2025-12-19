@@ -34,12 +34,17 @@ type RedisDbNums struct {
 	CurrencyDb int `mapstructure:"currency_db"`
 }
 
+type MetricsConfig struct {
+	Port string `mapstructure:"port"`
+}
+
 type AppConfig struct {
 	Service          ServiceConfig        `mapstructure:"gateway_service_config"`
 	GrpcClientConfig GrpcClientConfig     `mapstructure:"grpc_client_config"`
 	AuthApi          AuthApiServiceConfig `mapstructure:"auth_api_service"`
 	RedisConfig      RedisConfig          `mapstructure:"redis_config"`
 	RedisDbNums      RedisDbNums          `mapstructure:"Redis_db_nums"`
+	MetricsConfig    MetricsConfig        `mapstructure:"metrics_service_config"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

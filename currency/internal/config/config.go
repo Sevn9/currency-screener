@@ -19,6 +19,10 @@ type ManagementConfig struct {
 	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
 }
 
+type MetricsConfig struct {
+	Port string `mapstructure:"port"`
+}
+
 type PublicCurrencyAPIConfig struct {
 	ApiUrl         string `mapstructure:"api_url"`
 	TimeoutSeconds int    `mapstructure:"timeout_seconds"`
@@ -52,6 +56,7 @@ type AppConfig struct {
 	ManagementService ManagementConfig        `mapstructure:"management_service_config"`
 	PostgresDb        DatabasePostgresConfig  `mapstructure:"database_postgres"`
 	Worker            WorkerConfig            `mapstructure:"worker"`
+	MetricsConfig     MetricsConfig           `mapstructure:"metrics_service_config"`
 }
 
 func LoadConfig(path string) (*AppConfig, error) {

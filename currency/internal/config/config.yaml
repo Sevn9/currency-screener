@@ -8,6 +8,8 @@ management_service_config:
   port: "8099"
   timeout: 30
 
+metrics_service_config:
+  port: ":8081"
 
 currency_api_config:
   api_url: "https://latest.currency-api.pages.dev"

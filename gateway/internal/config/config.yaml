@@ -19,3 +19,6 @@ redis_config:
 
 Redis_db_nums:
   currency_db: 0
+
+metrics_service_config:
+  port: ":8081"

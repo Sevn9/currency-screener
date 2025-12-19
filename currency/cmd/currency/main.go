@@ -148,18 +148,18 @@ func run() error {
 	//added services
 	svc := services.NewCurrencyService(cacheRepo, dbRepo, currClient, logger)
 
-	// Создаем сборщик метрик
+	// metrics
 	metricsCollector := middleware.NewMetricsMiddleware(
 		requestCount,
 		requestDuration,
 		appUptime,
 	)
 
-	// Запускаем HTTP сервер для метрик Prometheus
+	// start server for metrics Prometheus
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		log.Println("Prometheus metrics server running on :8081")
-		if err := http.ListenAndServe(":8081", nil); err != nil {
+		log.Println("Prometheus metrics server running on " + cfg.MetricsConfig.Port)
+		if err := http.ListenAndServe(cfg.MetricsConfig.Port, nil); err != nil {
 			log.Fatalf("Error starting Prometheus metrics server: %s", err)
 		}
 	}()
@@ -199,7 +199,7 @@ func run() error {
 			zap.String("port", cfg.ManagementService.Port))
 
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server failed", zap.Error(err))
+			logger.Error("management service server start failed", zap.Error(err))
 		}
 	}()
 

@@ -27,6 +27,9 @@ worker:
     base_currency: "RUB"
     target_currency: "USD"
 
+metrics_service_config:
+  port: ":8081"
+
 # logging:
 #   level: info
 #   format: json

@@ -22,8 +22,43 @@ import (
 	"github.com/Sevn9/currency-screener/pkg/grpc_client"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
+
+var (
+	requestCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "currency_requests_total",
+			Help: "Total number of requests handled by the currency service",
+		},
+		[]string{"method"},
+	)
+
+	requestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "currency_request_duration_seconds",
+			Help:    "Histogram of response times for requests",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method"},
+	)
+
+	appUptime = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "currency_service_uptime_seconds",
+			Help: "Time since service start in seconds",
+		},
+	)
+)
+
+func init() {
+	// metrics register
+	prometheus.MustRegister(requestCount)
+	prometheus.MustRegister(requestDuration)
+	prometheus.MustRegister(appUptime)
+}
 
 func main() {
 	log.Println("main: gateway start")
@@ -121,27 +156,81 @@ func run() error {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	// create metrics collector
+	metricsCollector := middleware.NewMetricsMiddleware(
+		requestCount,
+		requestDuration,
+		appUptime,
+	)
+
+	// create metrics server
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+
+	metricsSrv := &http.Server{
+		Addr:    cfg.MetricsConfig.Port,
+		Handler: metricsMux,
+	}
+
 	// Starting the server
 	go func() {
 		log.Printf("Starting Gateway server on %s", cfg.Service.Port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("srv.ListenAndServe: %s\n", err)
+			logger.Error("main: error starting Gateway server:",
+				zap.Error(err))
+		}
+	}()
+
+	// Starting the server metrics Prometheus
+	go func() {
+		logger.Info("Starting Metrics server", zap.String("port", ":8081"))
+		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Metrics server failed", zap.Error(err))
 		}
 	}()
 
 	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	errCh := make(chan error, 1)
 
-	log.Println("Shutting down server...")
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	startTime := time.Now()
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stop:
+			logger.Info("Shutting down servers...")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			// shutdown main server
+			if err := srv.Shutdown(ctx); err != nil {
+				logger.Error("main: Gateway server forced to shutdown", zap.Error(err))
+			} else {
+				logger.Info("main: Gateway server stopped gracefully")
+			}
+
+			// shutdown metrics server
+			if err := metricsSrv.Shutdown(ctx); err != nil {
+				logger.Error("main: Metrics server forced to shutdown", zap.Error(err))
+			} else {
+				logger.Info("main: Metrics server stopped gracefully")
+			}
+
+			return nil
+
+		case serveErr := <-errCh: // panic or port cant access
+			logger.Error("Server crashed", zap.Error(serveErr))
+			return serveErr
+
+		case <-ticker.C:
+			uptime := time.Since(startTime).Seconds()
+			metricsCollector.SetUptime(uptime)
+		}
 	}
-
-	return nil
 }
