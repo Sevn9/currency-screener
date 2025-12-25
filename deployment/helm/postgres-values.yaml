@@ -1,0 +1,15 @@
+# deploy/helm/postgres-values.yaml
+auth:
+  database: currency_db
+  username: currency1
+  password: secret123
+  postgresPassword: secret123
+
+primary:
+  persistence:
+    enabled: false
+  resources:
+    limits: {}
+    requests:
+      memory: 256Mi
+      cpu: 250m

@@ -1,0 +1,32 @@
+replicaCount:
+
+image:
+  repository: docker.io/library/currency-service
+  tag: "1.0.0"
+  pullPolicy: Never
+
+service:
+  type: ClusterIP
+  port: 8081
+  grpcPort: 8090       # gRPC
+  metricsPort: 8081    # metrics
+  healthPort: 8099     # healthcheck
+
+env:
+  - name: POSTGRES_HOST
+    value: "postgres-postgresql.database.svc.cluster.local"
+  - name: POSTGRES_PORT
+    value: "5432"
+  - name: POSTGRES_DB
+    value: "currency_db"
+  - name: POSTGRES_USER
+    value: "currency1"
+  - name: POSTGRES_PASSWORD
+    value: "secret123"
+
+  - name: GRPC_PORT
+    value: "8090"
+  - name: HTTP_METRICS_PORT
+    value: "8081"
+  - name: HEALTH_PORT
+    value: "8099"
