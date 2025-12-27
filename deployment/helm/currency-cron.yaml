@@ -16,10 +16,8 @@ spec:
     spec:
       containers:
         - name: cron
-          image: currency-cron:latest # УКАЖИ СВОЙ ОБРАЗ
+          image: currency-cron:latest
           imagePullPolicy: IfNotPresent
-          # Команда запуска, если она не прописана в ENTRYPOINT докера
-          # command: ["/app/cron-binary"] 
           args: ["--config=/internal/config/config.yaml"]
           volumeMounts:
             - name: config-storage
@@ -28,5 +26,4 @@ spec:
       volumes:
         - name: config-storage
           configMap:
-            # Используем тот же ConfigMap, что и для основного сервиса
             name: currency-config
