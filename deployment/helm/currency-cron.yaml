@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currency-cron
+  labels:
+    app: currency-cron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: currency-cron
+  template:
+    metadata:
+      labels:
+        app: currency-cron
+    spec:
+      containers:
+        - name: cron
+          image: currency-cron:latest # УКАЖИ СВОЙ ОБРАЗ
+          imagePullPolicy: IfNotPresent
+          # Команда запуска, если она не прописана в ENTRYPOINT докера
+          # command: ["/app/cron-binary"] 
+          args: ["--config=/internal/config/config.yaml"]
+          volumeMounts:
+            - name: config-storage
+              mountPath: /internal/config/
+              readOnly: true
+      volumes:
+        - name: config-storage
+          configMap:
+            # Используем тот же ConfigMap, что и для основного сервиса
+            name: currency-config
