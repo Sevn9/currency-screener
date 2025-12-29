@@ -48,6 +48,7 @@ The services can be orchestrated using Docker Compose, with dependencies on a Po
 
    ```sh
    docker compose up --build
+   ```
 
 2. **Create Database with PostgreSQL**
 
@@ -116,3 +117,62 @@ Fetch currency rates by sending a `GET` request. Include the `Authorization` hea
 - **Content-Type Header**: The `Content-Type` header should be set to `application/json` for `POST` requests to specify that the request body contains JSON data.
 
 These steps assume the API is running locally on `localhost:8080`. Adjust the host and port as necessary if your API is hosted elsewhere.
+
+
+## Starting in Kubernetes (Minikube)
+
+```sh
+minikube start                           
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+```
+
+### Installing the Database and Cache
+
+```sh
+kubectl create ns database && kubectl create ns cache
+helm install postgres bitnami/postgresql -n database --set auth.username=currency1,auth.password=secret123,auth.database=currency_db
+helm install redis bitnami/redis -n cache --set auth.password=RedisPassword
+```
+
+### Build (run from the project root)
+
+```sh
+docker build -t currency-service:latest -f ./deployment/local/Dockerfile --build-arg BUILD_TARGET=./currency/cmd/currency/main.go .
+docker build -t gateway-service:latest -f ./deployment/local/Dockerfile --build-arg BUILD_TARGET=./gateway/cmd/gateway/main.go .
+docker build -t currency-cron:latest -f ./deployment/local/Dockerfile --build-arg BUILD_TARGET=./currency/cmd/cron/main.go .
+```
+
+### Loading into a cluster
+```sh
+minikube image load currency-service:latest
+minikube image load gateway-service:latest
+minikube image load currency-cron:latest
+```
+
+### 1. Configs and Migrations
+
+```sh
+kubectl create configmap currency-config --from-file=config.yaml=./deployment/local/currency-cuber-config.yaml
+kubectl create configmap gateway-config --from-file=config.yaml=./deployment/local/gateway-cuber-config.yaml
+kubectl create configmap currency-migrations --from-file=./currency/internal/migrations
+```
+
+### 2. Main services (Helm)
+```sh
+helm upgrade --install currency ./deployment/helm/currency
+helm upgrade --install gateway ./deployment/helm/gateway
+```
+
+### 3. Ancillary services (Kubectl)
+```sh
+kubectl create deployment auth-generator --image=artyomyatsenko/final-task-auth-generator:latest
+kubectl expose deployment auth-generator --port=8080 --target-port=8080
+kubectl apply -f ./deployment/helm/currency-cron.yaml
+```
+
+### 4. Tests (Kubectl)
+```sh
+kubectl get pods                              # All pods must be Running 1/1
+kubectl port-forward deployment/gateway 8082:8082  # Port forwarding to localhost:8082
+```
