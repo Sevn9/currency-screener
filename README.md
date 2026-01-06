@@ -118,6 +118,16 @@ Fetch currency rates by sending a `GET` request. Include the `Authorization` hea
 
 These steps assume the API is running locally on `localhost:8080`. Adjust the host and port as necessary if your API is hosted elsewhere.
 
+## Load Testing
+
+Go to:
+Go-projects\currency-screener\load-tests> 
+
+and run:
+```sh
+k6 run k6-script.js
+```
+
 
 ## Starting in Kubernetes (Minikube)
 
