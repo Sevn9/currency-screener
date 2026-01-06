@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "currency.fullname" . }}
+  labels:
+    {{- include "currency.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "currency.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "currency.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.grpcPort }}
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+            - name: health
+              containerPort: {{ .Values.service.healthPort }}
+          env:
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: {{ .Values.service.healthPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: config-storage
+              mountPath: /internal/config/
+              readOnly: true
+      volumes:
+        - name: config-storage
+          configMap:
+            name: currency-config

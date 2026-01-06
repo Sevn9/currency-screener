@@ -14,6 +14,14 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Loki
+monitoring/loki/cache
+monitoring/loki/chunks
+monitoring/loki/compactor
+monitoring/loki/index
+monitoring/loki/wal
+
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

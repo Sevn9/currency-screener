@@ -1,0 +1,35 @@
+grpc_service_config:
+  host: localhost
+  port: "8090"
+  timeout: 30
+
+management_service_config:
+  host: localhost
+  port: "8099"
+  timeout: 30
+
+
+currency_api_config:
+  api_url: "https://latest.currency-api.pages.dev"
+
+
+database_postgres:
+  host: postgres-postgresql.database.svc.cluster.local
+  port: 5432
+  username: currency1
+  password: secret123
+  dbname: currency_db
+
+worker:
+  schedule: "@daily"
+  timeout: 5
+  currency_pair:
+    base_currency: "RUB"
+    target_currency: "USD"
+
+metrics_service_config:
+  port: ":8081"
+
+# logging:
+#   level: info
+#   format: json
